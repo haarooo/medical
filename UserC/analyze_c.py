@@ -20,8 +20,33 @@ print(data2.isnull().sum())
 df1 = pd.DataFrame(data1)
 df2 = pd.DataFrame(data2)
 
-
 # 2019년부터 2023년 사이 분만 건수가 감소한 시군구에서는 분만실 밀집도가 함께 감소했을 것이다.
+
+
+# 연도별 분만실 , 분만건수 평균 추이
+years = [2019, 2020, 2021, 2022, 2023]
+
+birth_means = []
+room_means = []
+
+for y in years:
+    birth_means.append(df1[f'분만건수_{y}'].mean())
+    room_means.append(df2[f'분만실_{y}'].mean())
+
+print(birth_means , room_means)
+
+plt.figure(figsize=(10, 5))
+plt.plot(years, birth_means, marker='o', label='분만건수 평균')
+plt.plot(years, room_means, marker='o', label='분만실 평균')
+plt.title('2019~2023년 분만건수와 분만실 평균 변화')
+plt.xlabel('연도')
+plt.ylabel('평균값')
+plt.legend()
+plt.grid(True)
+plt.show()
+
+
+# 분만건수 변화와 분만실밀집도 변화 상관관계 분석
 df1 = df1[['sd_cd', '시군구', '분만건수_2019', '분만건수_2023']]
 df2 = df2[['sd_cd', '분만실_2019', '분만실_2023']]
 df = pd.merge(df1, df2, on='sd_cd', how='inner')
@@ -30,8 +55,10 @@ df = pd.merge(df1, df2, on='sd_cd', how='inner')
 df = df[(df['분만건수_2019'] > 0) & (df['분만건수_2023'] > 0) & (df['분만실_2019'] > 0) & (df['분만실_2023'] > 0)]
  
 # 변화율 계산
-df['분만건수_변화율'] = (df['분만건수_2023'] - df['분만건수_2019']) / df['분만건수_2019'] * 100
-df['분만실_변화율'] = (df['분만실_2023'] - df['분만실_2019']) / df['분만실_2019'] * 100
+# 분만건수 연평균 변화율
+df['분만건수_변화율'] = (  (df['분만건수_2023'] / df['분만건수_2019']) ** (1/4) - 1) * 100
+# 분만실 연평균 변화율
+df['분만실_변화율'] = ( (df['분만실_2023'] / df['분만실_2019']) ** (1/4) - 1) * 100
  
 # 상관계수
 r = df['분만건수_변화율'].corr(df['분만실_변화율'])
@@ -60,11 +87,9 @@ df1 = df1[['sd_cd', '시군구', '노인인구비율_2023']]
 df2 = df2[['sd_cd', '전체의사_2019', '전체의사_2023']]
 df = pd.merge(df1, df2, on='sd_cd', how='inner')
  
-# 0제거
-df = df[(df['전체의사_2019'] > 0) & (df['전체의사_2023'] > 0) & (df['노인인구비율_2023'] > 0)]
  
 # 의사수 변화율
-df['의사_변화율'] = (df['전체의사_2023'] - df['전체의사_2019']) / df['전체의사_2019'] * 100
+df['의사_변화율'] = ( (df['전체의사_2023'] / df['전체의사_2019']) ** (1/4) - 1) * 100
  
 
 r = df['노인인구비율_2023'].corr(df['의사_변화율'])
@@ -90,22 +115,20 @@ df1 = df1[['sd_cd', '시도', '시군구', '노인인구비율_2023']]
 df2 = df2[['sd_cd', '전체의사_2019', '전체의사_2023']]
 df = pd.merge(df1, df2, on='sd_cd', how='inner')
  
-# 0 제거
-df = df[(df['전체의사_2019'] > 0) & (df['전체의사_2023'] > 0) & (df['노인인구비율_2023'] > 0)]
  
-# 의사수 변화율 계산
-df['의사_변화율'] = (df['전체의사_2023'] - df['전체의사_2019']) / df['전체의사_2019'] * 100
- 
-# 지역명 만들기
+# 의사수 변화율
+df['의사_변화율'] = ( (df['전체의사_2023'] / df['전체의사_2019']) ** (1/4) - 1) * 100
+
+
 df['지역명'] = df['시도'] + ' ' + df['시군구']
  
-# Top 10 추출
+# Top10 
 worst = df.sort_values(by='의사_변화율').head(10).reset_index(drop=True)
 best = df.sort_values(by='의사_변화율', ascending=False).head(10).reset_index(drop=True)
  
 fig, axs = plt.subplots(1, 2, figsize=(15, 6))
  
-# 워스트 (의사 감소, 막대가 왼쪽으로 뻗음)
+# 워스트
 sns.barplot(data=worst, x='의사_변화율', y='지역명', color='red', ax=axs[0])
 axs[0].set_title('의사수 감소율 워스트 Top 10')
 axs[0].set_xlabel('의사수 변화율(%)')
@@ -141,15 +164,11 @@ df1 = df1[['sd_cd', '시군구', '노인인구비율_2023']]
 df2 = df2[['sd_cd', '전체의사_2019', '전체의사_2020', '전체의사_2021','전체의사_2022', '전체의사_2023']]
 df = pd.merge(df1, df2, on='sd_cd', how='inner')
  
-# 0 제거
-df = df[(df['전체의사_2019'] > 0) & (df['전체의사_2023'] > 0) & (df['노인인구비율_2023'] > 0)]
- 
 # 노인비율 사분위 기준
 q1 = df['노인인구비율_2023'].quantile(0.25)
 q3 = df['노인인구비율_2023'].quantile(0.75)
 
 
-# 두 그룹 분리
 high = df[df['노인인구비율_2023'] >= q3]   # 노인비율 높은 그룹
 low = df[df['노인인구비율_2023'] <= q1]    # 노인비율 낮은 그룹
  
@@ -168,6 +187,7 @@ df_plot = pd.DataFrame({
     '평균 의사수': low_means + high_means,
     '그룹': ['노인비율 낮은 그룹'] * 5 + ['노인비율 높은 그룹'] * 5
 })
+print(df_plot)
 
  
 # 선 그래프
