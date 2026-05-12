@@ -88,6 +88,7 @@ plt.grid(alpha=0.3)
 plt.show()
 
 
+
 # 그래프 1-3: 5년 변화율 박스플롯
 fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 sns.boxplot(
@@ -106,9 +107,6 @@ plt.tight_layout()
 plt.show()
 
 
-
-
-
 # 가설 2
 # 노인인구비율(dsp03)이 높은 시군구일수록
 # 응급실 30분 도달률(ra27)과 응급실 관내이용률(uu27)이 낮을 것이다.
@@ -123,4 +121,95 @@ merged = pd.merge(
 )
 print(f"\n[가설2] 병합 후 행 수: {len(merged)}")
 
+# ra27은 0값이 약 40% (대부분 도심권) → 0값 제외
+merged_ra27 = merged[merged['ra27_응급실30분도달'] > 0]
 
+# 노인인구비율 구간 나누기 (4분위)
+merged_ra27['고령화_구간'] = pd.qcut(
+    merged_ra27['dsp03_노인인구비율'],
+    q=4,
+    labels=['하위25%', '25~50%', '50~75%', '상위25%']
+)
+
+merged['고령화_구간'] = pd.qcut(
+    merged['dsp03_노인인구비율'],
+    q=4,
+    labels=['하위25%', '25~50%', '50~75%', '상위25%']
+)
+
+# 구간별 평균
+section_ra27 = merged_ra27.groupby('고령화_구간', observed=True)[
+    'ra27_응급실30분도달'
+].mean()
+section_uu27 = merged.groupby('고령화_구간', observed=True)[
+    'uu27_응급실관내이용률'
+].mean()
+
+print("\n[가설2] 고령화 구간별 응급실 30분 도달률 평균")
+print(section_ra27)
+print("\n[가설2] 고령화 구간별 응급실 관내이용률 평균")
+print(section_uu27)
+
+# 상관계수
+corr_ra27 = merged_ra27[['dsp03_노인인구비율', 'ra27_응급실30분도달']].corr().iloc[0, 1]
+corr_uu27 = merged[['dsp03_노인인구비율', 'uu27_응급실관내이용률']].corr().iloc[0, 1]
+print(f"\n[가설2] 상관계수")
+print(f"  노인인구비율 vs 응급실30분도달  : {corr_ra27:.3f}")
+print(f"  노인인구비율 vs 응급실관내이용률: {corr_uu27:.3f}")
+
+
+# 그래프 2-1: 노인인구비율 vs 응급실 30분 도달률 (산점도)
+plt.figure(figsize=(10, 5))
+sns.scatterplot(
+    data=merged_ra27,
+    x='dsp03_노인인구비율',
+    y='ra27_응급실30분도달',
+    alpha=0.4
+)
+sns.regplot(
+    data=merged_ra27,
+    x='dsp03_노인인구비율',
+    y='ra27_응급실30분도달',
+    scatter=False, color='red'
+)
+plt.title(f'노인인구비율 vs 응급실 30분 도달률 (상관 {corr_ra27:.2f})')
+plt.xlabel('노인인구비율 (%)')
+plt.ylabel('응급실 30분 도달률 (%)')
+plt.grid(alpha=0.3)
+plt.show()
+
+
+# 그래프 2-2: 노인인구비율 vs 응급실 관내이용률 (산점도)
+plt.figure(figsize=(10, 5))
+sns.scatterplot(
+    data=merged,
+    x='dsp03_노인인구비율',
+    y='uu27_응급실관내이용률',
+    alpha=0.4
+)
+sns.regplot(
+    data=merged,
+    x='dsp03_노인인구비율',
+    y='uu27_응급실관내이용률',
+    scatter=False, color='red'
+)
+plt.title(f'노인인구비율 vs 응급실 관내이용률 (상관 {corr_uu27:.2f})')
+plt.xlabel('노인인구비율 (%)')
+plt.ylabel('응급실 관내이용률 (%)')
+plt.grid(alpha=0.3)
+plt.show()
+
+
+# 그래프 2-3: 고령화 구간별 평균 막대그래프
+fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+section_ra27.plot(kind='bar', ax=axes[0], color='steelblue')
+axes[0].set_title('고령화 구간별 응급실 30분 도달률')
+axes[0].set_ylabel('도달률 (%)')
+axes[0].tick_params(axis='x', rotation=0)
+
+section_uu27.plot(kind='bar', ax=axes[1], color='salmon')
+axes[1].set_title('고령화 구간별 응급실 관내이용률')
+axes[1].set_ylabel('이용률 (%)')
+axes[1].tick_params(axis='x', rotation=0)
+plt.tight_layout()
+plt.show()
