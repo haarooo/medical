@@ -181,4 +181,3 @@ plt.grid()
 plt.show()
  
 
-#ㅁ
