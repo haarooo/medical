@@ -175,7 +175,6 @@ sns.regplot(
 plt.title(f'노인인구비율 vs 응급실 30분 도달률 (상관 {corr_ra27:.2f})')
 plt.xlabel('노인인구비율 (%)')
 plt.ylabel('응급실 30분 도달률 (%)')
-plt.grid(alpha=0.3)
 plt.show()
 
 
@@ -196,7 +195,6 @@ sns.regplot(
 plt.title(f'노인인구비율 vs 응급실 관내이용률 (상관 {corr_uu27:.2f})')
 plt.xlabel('노인인구비율 (%)')
 plt.ylabel('응급실 관내이용률 (%)')
-plt.grid(alpha=0.3)
 plt.show()
 
 
